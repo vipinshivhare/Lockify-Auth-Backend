@@ -5,10 +5,10 @@ import in.vipinshivhare.Lockify.io.ProfileResponse;
 
 public interface ProfileService {
 
-ProfileResponse createProfile(ProfileRequest request);
+    ProfileResponse createProfile(ProfileRequest request);
 
     ProfileResponse getProfile(String email);
 
-
+    void sendResetOtp(String email);
 
 }

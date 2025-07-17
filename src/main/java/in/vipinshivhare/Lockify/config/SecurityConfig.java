@@ -1,8 +1,7 @@
 package in.vipinshivhare.Lockify.config;
 
-import in.vipinshivhare.Lockify.filter.JwtRequestFilter;
-import in.vipinshivhare.Lockify.service.AppUserDetailsService;
-import lombok.RequiredArgsConstructor;
+import java.util.List;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,11 +21,13 @@ import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
-import java.util.List;
+import in.vipinshivhare.Lockify.filter.JwtRequestFilter;
+import in.vipinshivhare.Lockify.service.AppUserDetailsService;
+import lombok.AllArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
-@RequiredArgsConstructor
+@AllArgsConstructor
 public class SecurityConfig {
 
     private final AppUserDetailsService appUserDetailsService;
