@@ -44,7 +44,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         if(authorizationHeader != null && authorizationHeader.startsWith("Bearer")){
             jwt = authorizationHeader.substring(7);
         }
-        // 2. if noot found in header, check cookies
+        // 2. if not found in header, check cookies
         if(jwt == null){
             Cookie[] cookies = request.getCookies();
             if(cookies != null){
@@ -57,7 +57,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             }
         }
 
-        // 3/ we need to validate the token and set the security context
+        // 3. we need to validate the token and set the security context
 
         if(jwt != null){
             email = jwtUtil.extractEmail(jwt);

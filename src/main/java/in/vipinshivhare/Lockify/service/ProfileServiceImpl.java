@@ -56,7 +56,7 @@ public class ProfileServiceImpl implements ProfileService{
         existingEntity.setResetOtp(otp);
         existingEntity.setResetOtpExpireAt(expiryTime);
 
-        //save into the databasse
+        //save into the database
         userRepostory.save(existingEntity);
 
         try {
