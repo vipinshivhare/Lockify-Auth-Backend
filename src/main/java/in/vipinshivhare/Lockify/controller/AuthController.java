@@ -36,6 +36,21 @@ public class AuthController {
     private final JwtUtil jwtUtil;
     private final ProfileService profileService;
 
+
+    @RestController
+    public class DefaultController {
+    
+        @GetMapping("/")
+        public String home() {
+            return "API is working";
+        }
+    }
+
+    @GetMapping("/health")
+    public String health() {
+        return "Health is OK✅" ;
+    }
+
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody AuthRequest request){
         try {
