@@ -59,8 +59,10 @@ public class AuthController {
             final String jwtToken = jwtUtil.generateToken(userDetails);
             ResponseCookie cookie = ResponseCookie.from("jwt",jwtToken)
                     .httpOnly(true)
+                    .secure(true) // Required for SameSite=None
                     .path("/")
                     .maxAge(Duration.ofDays(1))
+                    .sameSite("None") // <--- This is the key!
                     .build();
             return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
                     .body(new AuthResponse(request.getEmail(), jwtToken));
@@ -138,10 +140,10 @@ public class AuthController {
     public ResponseEntity<?> logout(HttpServletResponse response){
         ResponseCookie cookie = ResponseCookie.from("jwt", "")
                 .httpOnly(true)
-                .secure(false)
+                .secure(true) // Should also be true for cross-site
                 .path("/")
                 .maxAge(0)
-                .sameSite("Strict")
+                .sameSite("None")
                 .build();
         return ResponseEntity.ok()
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
