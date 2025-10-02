@@ -32,8 +32,7 @@ public class JwtRequestFilter extends OncePerRequestFilter {
             "/register",
             "/send-reset-otp",
             "/reset-password",
-            "/logout",
-            "/send-otp"        // listed public in security config
+            "/logout"
     );
 
     @Override

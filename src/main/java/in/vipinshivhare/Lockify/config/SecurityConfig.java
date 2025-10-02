@@ -1,12 +1,12 @@
 package in.vipinshivhare.Lockify.config;
 
 import java.util.List;
+import java.util.Arrays;
 
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
-import org.springframework.security.authentication.ProviderManager;
-import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -23,17 +23,19 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import org.springframework.web.filter.CorsFilter;
 
 import in.vipinshivhare.Lockify.filter.JwtRequestFilter;
-import in.vipinshivhare.Lockify.service.AppUserDetailsService;
-import lombok.AllArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import lombok.RequiredArgsConstructor;
 
 @Configuration
 @EnableWebSecurity
-@AllArgsConstructor
+@RequiredArgsConstructor
 public class SecurityConfig {
 
-    private final AppUserDetailsService appUserDetailsService;
     private final JwtRequestFilter jwtRequestFilter;
     private final CustomAuthenticationEntryPoint customAuthenticationEntryPoint;
+
+    @Value("${app.allowed.origins:http://localhost:5173,https://lockify-client.netlify.app}")
+    private String allowedOriginsProp;
 
 
 
@@ -43,8 +45,9 @@ public class SecurityConfig {
                 .csrf(AbstractHttpConfigurer::disable)//  Disables Cross-Site Request Forgery (CSRF) protection. This is a common practice for stateless REST APIs that use tokens (like JWT)
                 .authorizeHttpRequests(auth -> auth
                         .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
-                        .requestMatchers("/login", "/register", "/send-reset-otp", "/reset-password", "/logout", "/send-otp")// Allows public access to login/register/password endpoints.
-                        .permitAll().anyRequest().authenticated()) //All other endpoints require authentication.
+                        .requestMatchers("/", "/health", "/login", "/register", "/send-reset-otp", "/reset-password", "/logout")
+                        .permitAll()
+                        .anyRequest().authenticated()) //All other endpoints require authentication.
                 .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))//No session will be stored. Every request must have a fresh JWT.
                 .logout(AbstractHttpConfigurer::disable)//  Disables Spring Security's default logout handling, as you likely have a custom logout endpoint (/logout)
                 .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)//Adds your jwtRequestFilter before Spring’s default authentication filter, so JWT is validated early.
@@ -64,11 +67,11 @@ public class SecurityConfig {
 
     private CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration config = new CorsConfiguration();
-//      config.setAllowedOrigins(List.of("http://localhost:5173"));
-        config.setAllowedOrigins(List.of(
-                "http://localhost:5173",
-                "https://lockify-client.netlify.app"
-        ));
+        List<String> origins = Arrays.stream(allowedOriginsProp.split(","))
+                .map(String::trim)
+                .filter(s -> !s.isEmpty())
+                .toList();
+        config.setAllowedOrigins(origins);
         config.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"));
         config.setAllowedHeaders(List.of("*") ); // Allow all headers for flexibility
         config.setAllowCredentials(true);
@@ -79,11 +82,8 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(){ // help for making a secure login API
-        DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
-        authenticationProvider.setUserDetailsService(appUserDetailsService);
-        authenticationProvider.setPasswordEncoder(passwordEncoder());
-        return new ProviderManager(authenticationProvider);
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration authenticationConfiguration) throws Exception { // help for making a secure login API
+        return authenticationConfiguration.getAuthenticationManager();
     }
 
 

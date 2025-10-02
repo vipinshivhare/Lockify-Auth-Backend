@@ -4,6 +4,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -14,6 +15,7 @@ public class EmailService {
     @Value("${spring.mail.properties.mail.smtp.from}")
     private String fromEmail;
 
+    @Async
     public void sendWelcomeEmail(String toEmail, String name){
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
@@ -23,6 +25,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    @Async
     public void sendResetOtpEmail(String toEmail, String otp){
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
@@ -32,6 +35,7 @@ public class EmailService {
         mailSender.send(message);
     }
 
+    @Async
     public void sendOtpEmail(String toEmail, String otp){
         SimpleMailMessage message = new SimpleMailMessage();
         message.setFrom(fromEmail);
