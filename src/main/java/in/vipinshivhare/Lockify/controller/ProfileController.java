@@ -22,7 +22,11 @@ public class ProfileController {
     @ResponseStatus(HttpStatus.CREATED)
     public ProfileResponse register(@Valid @RequestBody ProfileRequest request){
         ProfileResponse response = profileService.createProfile(request);
-        emailService.sendWelcomeEmail(response.getEmail(), request.getName());
+        try {
+            emailService.sendWelcomeEmail(response.getEmail(), request.getName());
+        } catch (Exception ex) {
+            // Swallow email failures to avoid breaking signup in restricted environments (e.g., Render)
+        }
         return response;
     }
 
