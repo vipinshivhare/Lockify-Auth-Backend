@@ -20,7 +20,7 @@ import java.sql.Timestamp;
 public class UserEntity {
 
     @Id // for unique id
-    @GeneratedValue(strategy = GenerationType.IDENTITY) // for ID auto generate
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
     @Column(unique = true)
     private String userId;

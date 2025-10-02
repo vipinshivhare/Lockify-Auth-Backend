@@ -57,15 +57,7 @@ public class AuthController {
             authenticate(request.getEmail(), request.getPassword());
             final UserDetails userDetails = appUserDetailsService.loadUserByUsername(request.getEmail());
             final String jwtToken = jwtUtil.generateToken(userDetails);
-            ResponseCookie cookie = ResponseCookie.from("jwt",jwtToken)
-                    .httpOnly(true)
-                    .secure(true) // Required for SameSite=None
-                    .path("/")
-                    .maxAge(Duration.ofDays(1))
-                    .sameSite("None") // <--- This is the key!
-                    .build();
-            return ResponseEntity.ok().header(HttpHeaders.SET_COOKIE, cookie.toString())
-                    .body(new AuthResponse(request.getEmail(), jwtToken));
+            return ResponseEntity.ok(new AuthResponse(request.getEmail(), jwtToken));
         } catch (BadCredentialsException ex){
             Map<String, Object> error = new HashMap<>();
             error.put("error", "true");
@@ -149,17 +141,4 @@ public class AuthController {
                 .header(HttpHeaders.SET_COOKIE, cookie.toString())
                 .body("Logged out successfully!");
     }
-
-
-
-
-
 }
-
-
-
-
-
-
-
-

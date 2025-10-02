@@ -4,7 +4,6 @@ import in.vipinshivhare.Lockify.service.AppUserDetailsService;
 import in.vipinshivhare.Lockify.util.JwtUtil;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
@@ -26,12 +25,39 @@ public class JwtRequestFilter extends OncePerRequestFilter {
     private final AppUserDetailsService appUserDetailsService;
     private final JwtUtil jwtUtil;
 
-    private static final List<String> PUBLIC_URLS = List.of("/login", "/register", "/send-reset-otp", "/reset-password", "/logout");
+    private static final List<String> PUBLIC_URLS = List.of(
+            "/",               // root
+            "/health",         // health
+            "/login",
+            "/register",
+            "/send-reset-otp",
+            "/reset-password",
+            "/logout",
+            "/send-otp"        // listed public in security config
+    );
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
-        String path = request.getServletPath();
-        if(PUBLIC_URLS.contains(path)){
+        // Normalize path to be independent of context-path and allow OPTIONS preflight
+        String requestUri = request.getRequestURI(); // e.g. /api/v1.0/register or /register
+        String contextPath = request.getContextPath(); // e.g. /api/v1.0
+        String rawPath = requestUri;
+        if (contextPath != null && !contextPath.isEmpty() && requestUri.startsWith(contextPath)) {
+            rawPath = requestUri.substring(contextPath.length()); // -> /register
+        }
+        final String normalizedPath = rawPath;
+
+        // Always allow CORS preflight requests to pass through
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        // Allow public endpoints (match exact or suffix to be safe)
+        boolean isPublic = PUBLIC_URLS.contains(normalizedPath) ||
+                PUBLIC_URLS.stream().anyMatch(pub -> normalizedPath.endsWith(pub));
+
+        if(isPublic){
             filterChain.doFilter(request,response);
             return;
         }
@@ -44,19 +70,6 @@ public class JwtRequestFilter extends OncePerRequestFilter {
         if(authorizationHeader != null && authorizationHeader.startsWith("Bearer ")){
             jwt = authorizationHeader.substring(7);
         }
-        // 2. if not found in header, check cookies
-        if(jwt == null){
-            Cookie[] cookies = request.getCookies();
-            if(cookies != null){
-                for(Cookie cookie : cookies){
-                    if("jwt".equals(cookie.getName())){
-                        jwt = cookie.getValue();
-                        break;
-                    }
-                }
-            }
-        }
-
         // 3. we need to validate the token and set the security context
 
         if(jwt != null){

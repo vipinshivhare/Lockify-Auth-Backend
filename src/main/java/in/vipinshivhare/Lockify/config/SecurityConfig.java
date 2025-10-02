@@ -16,6 +16,7 @@ import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.http.HttpMethod;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -38,15 +39,16 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
-        http.cors(Customizer.withDefaults())
-                .csrf(AbstractHttpConfigurer::disable)
+        http.cors(Customizer.withDefaults()) // Enables Cross-Origin Resource Sharing (CORS), allowing requests from different domains
+                .csrf(AbstractHttpConfigurer::disable)//  Disables Cross-Site Request Forgery (CSRF) protection. This is a common practice for stateless REST APIs that use tokens (like JWT)
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/login", "/register", "/send-reset-otp", "/reset-password", "/logout", "/send-otp")
-                        .permitAll().anyRequest().authenticated())
-                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
-                .logout(AbstractHttpConfigurer::disable)
-                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)
-                .exceptionHandling(ex -> ex.authenticationEntryPoint(customAuthenticationEntryPoint));
+                        .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
+                        .requestMatchers("/login", "/register", "/send-reset-otp", "/reset-password", "/logout", "/send-otp")// Allows public access to login/register/password endpoints.
+                        .permitAll().anyRequest().authenticated()) //All other endpoints require authentication.
+                .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))//No session will be stored. Every request must have a fresh JWT.
+                .logout(AbstractHttpConfigurer::disable)//  Disables Spring Security's default logout handling, as you likely have a custom logout endpoint (/logout)
+                .addFilterBefore(jwtRequestFilter, UsernamePasswordAuthenticationFilter.class)//Adds your jwtRequestFilter before Spring’s default authentication filter, so JWT is validated early.
+                .exceptionHandling(ex -> ex.authenticationEntryPoint(customAuthenticationEntryPoint));//If the user is unauthenticated, customAuthenticationEntryPoint sends a proper error response.
             return http.build();
     }
 
@@ -77,7 +79,7 @@ public class SecurityConfig {
     }
 
     @Bean
-    public AuthenticationManager authenticationManager(){
+    public AuthenticationManager authenticationManager(){ // help for making a secure login API
         DaoAuthenticationProvider authenticationProvider = new DaoAuthenticationProvider();
         authenticationProvider.setUserDetailsService(appUserDetailsService);
         authenticationProvider.setPasswordEncoder(passwordEncoder());
