@@ -14,15 +14,32 @@ import org.springframework.stereotype.Service;
 public class EmailService {
     private final JavaMailSender mailSender;
 
-    @Value("${spring.mail.properties.mail.smtp.from}")
+    @Value("${spring.mail.properties.mail.smtp.from:}")
     private String fromEmail;
+
+    @Value("${spring.mail.username:}")
+    private String mailUsername;
+
+    private String resolveFromAddress() {
+        if (fromEmail != null && !fromEmail.isBlank()) {
+            return fromEmail;
+        }
+        if (mailUsername != null && !mailUsername.isBlank()) {
+            return mailUsername;
+        }
+        return null;
+    }
 
     @Async
     public void sendWelcomeEmail(String toEmail, String name){
         try {
             log.info("Attempting to send welcome email to: {}", toEmail);
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
+            String from = resolveFromAddress();
+            if (from != null) {
+                message.setFrom(from);
+                message.setReplyTo(from);
+            }
             message.setTo(toEmail);
             message.setSubject("Welcome to Our Platform");
             message.setText("Hello "+name+",\n\nThanks for registering with us!\n\nRegards, \nLockify Team");
@@ -38,7 +55,11 @@ public class EmailService {
         try {
             log.info("Attempting to send reset OTP email to: {}", toEmail);
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
+            String from = resolveFromAddress();
+            if (from != null) {
+                message.setFrom(from);
+                message.setReplyTo(from);
+            }
             message.setTo(toEmail);
             message.setSubject("Password Reset OTP");
             message.setText("Your otp for resetting your password is "+otp+". Use this OTP to proceed with resetting your password.");
@@ -54,7 +75,11 @@ public class EmailService {
         try {
             log.info("Attempting to send verification OTP email to: {}", toEmail);
             SimpleMailMessage message = new SimpleMailMessage();
-            message.setFrom(fromEmail);
+            String from = resolveFromAddress();
+            if (from != null) {
+                message.setFrom(from);
+                message.setReplyTo(from);
+            }
             message.setTo(toEmail);
             message.setSubject("Account Verification OTP");
             message.setText("Your OTP is "+otp+". Verify your account using this OTP");
