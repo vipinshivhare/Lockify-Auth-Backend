@@ -7,6 +7,13 @@ import org.springframework.mail.SimpleMailMessage;
 import org.springframework.mail.javamail.JavaMailSender;
 import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpEntity;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.web.client.RestTemplate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
 @Service
 @RequiredArgsConstructor
@@ -19,6 +26,12 @@ public class EmailService {
 
     @Value("${spring.mail.username:}")
     private String mailUsername;
+
+    @Value("${brevo.api.key:}")
+    private String brevoApiKey;
+
+    @Value("${app.email.senderName:Lockify}")
+    private String senderName;
 
     private String resolveFromAddress() {
         if (fromEmail != null && !fromEmail.isBlank()) {
@@ -47,6 +60,7 @@ public class EmailService {
             log.info("Welcome email sent successfully to: {}", toEmail);
         } catch (Exception e) {
             log.error("Failed to send welcome email to {}: {}", toEmail, e.getMessage(), e);
+            tryApiFallback(toEmail, "Welcome to Our Platform", "Hello "+name+",\n\nThanks for registering with us!\n\nRegards, \nLockify Team");
         }
     }
 
@@ -67,6 +81,7 @@ public class EmailService {
             log.info("Reset OTP email sent successfully to: {}", toEmail);
         } catch (Exception e) {
             log.error("Failed to send reset OTP email to {}: {}", toEmail, e.getMessage(), e);
+            tryApiFallback(toEmail, "Password Reset OTP", "Your otp for resetting your password is "+otp+". Use this OTP to proceed with resetting your password.");
         }
     }
 
@@ -87,7 +102,51 @@ public class EmailService {
             log.info("Verification OTP email sent successfully to: {}", toEmail);
         } catch (Exception e) {
             log.error("Failed to send verification OTP email to {}: {}", toEmail, e.getMessage(), e);
+            tryApiFallback(toEmail, "Account Verification OTP", "Your OTP is "+otp+". Verify your account using this OTP");
         }
+    }
+
+    private void tryApiFallback(String toEmail, String subject, String text) {
+        if (brevoApiKey == null || brevoApiKey.isBlank()) {
+            log.warn("Brevo API key not configured; skipping API fallback for email to {}", toEmail);
+            return;
+        }
+        try {
+            boolean ok = sendViaBrevoApi(toEmail, subject, text);
+            if (ok) {
+                log.info("Email sent via Brevo API to {}", toEmail);
+            } else {
+                log.error("Brevo API fallback failed for {}", toEmail);
+            }
+        } catch (Exception ex) {
+            log.error("Brevo API fallback threw error for {}: {}", toEmail, ex.getMessage(), ex);
+        }
+    }
+
+    private boolean sendViaBrevoApi(String toEmail, String subject, String text) {
+        RestTemplate restTemplate = new RestTemplate();
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.APPLICATION_JSON);
+        headers.set("api-key", brevoApiKey);
+
+        Map<String, Object> payload = new HashMap<>();
+        Map<String, String> sender = new HashMap<>();
+        String from = resolveFromAddress();
+        sender.put("email", from != null ? from : (mailUsername != null ? mailUsername : "noreply@lockify.local"));
+        sender.put("name", senderName);
+
+        Map<String, String> to = new HashMap<>();
+        to.put("email", toEmail);
+
+        payload.put("sender", sender);
+        payload.put("to", List.of(to));
+        payload.put("subject", subject);
+        payload.put("textContent", text);
+
+        HttpEntity<Map<String, Object>> entity = new HttpEntity<>(payload, headers);
+        String url = "https://api.brevo.com/v3/smtp/email";
+        Map response = restTemplate.postForObject(url, entity, Map.class);
+        return response != null && response.containsKey("messageId");
     }
 
 }
